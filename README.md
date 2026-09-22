@@ -1,12 +1,13 @@
 # DeadLinkFinder 🔗🔍
 
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
+[![SARIF v2.1.0](https://img.shields.io/badge/SARIF-v2.1.0-blue?logo=github)](https://docs.github.com/en/code-security/code-scanning)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://img.shields.io/badge/tests-17%20passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-20%20passed-brightgreen.svg)]()
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-zero%20external-success.svg)]()
 
-> **Fast, zero-dependency Markdown link, image, and heading anchor verifier CLI.**  
+> **Fast, zero-dependency Markdown link, image, and heading anchor verifier CLI with native SARIF output.**  
 > Prevent broken links, missing image assets, and dead `#anchor` fragments in your documentation before they hit production.
 
 ---
@@ -24,12 +25,23 @@ Documentation is the front door of your project. Yet, as repositories evolve:
 
 ## 🌟 Key Features
 
-- **Zero External Dependencies**: Pure Python standard library (`re`, `pathlib`, `argparse`, `difflib`). Runs anywhere without package installation.
+- **Zero External Dependencies**: Pure Python standard library (`re`, `pathlib`, `argparse`, `difflib`, `json`, `urllib`). Runs anywhere without package installation.
+- **Native SARIF v2.1.0**: Generates standard OASIS SARIF reports directly consumable by GitHub Code Scanning Alerts and CI dashboards.
 - **GitHub-Compatible Anchor Engine**: Perfectly replicates GitHub's GFM heading-to-slug algorithm, handling emojis, accents, punctuation, and duplicate headings (`#section`, `#section-1`).
 - **Cross-File Anchor Verification**: Validates links like `[Docs](docs/api.md#endpoints)` by inspecting the target file's headers.
 - **Smart Code Block Isolation**: Automatically ignores code blocks (` ```...``` `) and inline backticks so sample URLs in tutorials don't trigger false alarms.
 - **Fuzzy "Did You Mean?" Suggestions**: When a local file path is broken due to a typo or move, DeadLinkFinder suggests the closest matching file in your repo.
-- **CI/CD Ready**: Exits with code `1` when broken references are found to keep your main branch spotless.
+- **Deterministic Exit Codes**: `0` (clean), `1` (broken links), `2` (CLI / path error).
+
+---
+
+## 🔍 Validation Rules
+
+| Rule ID | Name | Default Level | Description |
+|---------|------|---------------|-------------|
+| `DLF-001` | Broken Local File Link | `error` | Target local file or image asset does not exist on disk |
+| `DLF-002` | Missing Anchor Slug | `warning` | Target `#heading-anchor` not found in target Markdown document |
+| `DLF-003` | Broken External URL | `warning` | Remote HTTP/HTTPS URL returned $\ge 400$ or timed out |
 
 ---
 
@@ -53,7 +65,7 @@ python -m deadlinkfinder --help
 
 ## 🛠️ Usage & Examples
 
-### 1. Scan Current Repository
+### 1. Scan Current Repository (Offline Local Mode)
 
 Recursively scan all Markdown files in the current folder:
 
@@ -61,43 +73,48 @@ Recursively scan all Markdown files in the current folder:
 deadlinkfinder
 ```
 
-### 2. Scan Specific Files or Directories
+### 2. Export SARIF for GitHub Code Scanning
+
+Generate a standard SARIF v2.1.0 report:
 
 ```bash
-# Scan a specific file
-deadlinkfinder README.md
-
-# Scan documentation folder
-deadlinkfinder ./docs
+deadlinkfinder --format sarif -o results.sarif
 ```
 
-**Sample Output:**
+### 3. Machine-Parseable JSON Output
+
+```bash
+deadlinkfinder --format json -o deadlinks.json
+```
+
+### 4. Check External URLs (Optional Network Mode)
+
+```bash
+deadlinkfinder --check-external --timeout 5.0
+```
+
+---
+
+## ⚙️ CLI Options & Deterministic Exit Codes
+
 ```text
-====================================================================
-🔗 DeadLinkFinder Verification Report
-====================================================================
-  Files Scanned:   8 markdown file(s)
-  Links Checked:   47 of 62 link(s)
---------------------------------------------------------------------
-[!] FAILED: Found 2 broken link(s):
-
-  ✗ README.md:42
-    Target:     './docs/instalation.md'
-    Reason:     Target file does not exist: './docs/instalation.md'
-    Suggestion: Did you mean 'docs/installation.md'?
-
-  ✗ docs/api.md:18
-    Target:     '#auth-tokens'
-    Reason:     Anchor '#auth-tokens' not found in current file
-
-====================================================================
+usage: deadlinkfinder [-h] [--version] [--format {text,json,sarif}]
+                      [-o OUTPUT] [--check-external] [--offline]
+                      [--timeout TIMEOUT] [--no-color] [-q] [-v]
+                      [paths ...]
 ```
+
+| Exit Code | Meaning |
+|-----------|---------|
+| `0` | Success: All local links and anchors are valid |
+| `1` | Discrepancy detected: Broken files, missing anchors, or broken URLs |
+| `2` | Error: Target path not found or invalid CLI arguments |
 
 ---
 
 ## 🤖 CI/CD Integration (GitHub Actions)
 
-Catch broken links automatically on every pull request:
+Catch broken links automatically on every pull request and publish results to GitHub Code Scanning:
 
 ```yaml
 name: Documentation Integrity
@@ -112,9 +129,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Verify Markdown Links
+      - name: Verify Markdown Links (SARIF)
         run: |
-          python -m deadlinkfinder .
+          python -m deadlinkfinder --format sarif -o results.sarif .
+        continue-on-error: true
+      - name: Upload SARIF to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif
 ```
 
 ---
@@ -122,7 +144,7 @@ jobs:
 ## 🧪 Running Tests
 
 ```bash
-pytest tests contract_tests -v
+uv run --with pytest pytest
 ```
 
 ---
