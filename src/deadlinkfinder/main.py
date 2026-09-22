@@ -15,7 +15,7 @@ from .verifier import (
     verify_markdown_files,
 )
 
-VERSION = "0.2.0"
+VERSION = "0.2.1"
 
 IGNORED_DIRECTORIES = {
     ".git",

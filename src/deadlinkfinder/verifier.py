@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import difflib
+import hashlib
 import json
 import urllib.error
 import urllib.request
@@ -15,6 +16,13 @@ from .extractor import LinkReference, extract_links_from_file
 from .slug import extract_headings_from_markdown
 
 
+def compute_fingerprint(rule_id: str, source_file: str, line_number: int, target: str) -> str:
+    """Generate a deterministic partial fingerprint for SARIF Code Scanning deduplication."""
+    norm_path = source_file.replace("\\", "/").lstrip("./")
+    payload = f"{rule_id}|{norm_path}|{line_number}|{target.strip()}"
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
 @dataclass(slots=True)
 class BrokenLink:
     reference: LinkReference
@@ -22,6 +30,7 @@ class BrokenLink:
     rule_name: str
     reason: str
     suggestion: str | None = None
+    fingerprint: str = ""
 
 
 @dataclass(slots=True)
@@ -42,7 +51,7 @@ class LinkVerifier:
         self.http_timeout = http_timeout
         self._heading_cache: dict[Path, set[str]] = {}
         self._all_project_files: list[str] | None = None
-        self._url_cache: dict[str, tuple[bool, str | None]] = {}
+        self._url_cache: dict[str, tuple[bool, str | None, bool]] = {}
 
     def _get_headings_for_file(self, file_path: Path) -> set[str]:
         resolved = file_path.resolve()
@@ -90,47 +99,68 @@ class LinkVerifier:
                 return cand
         return None
 
-    def check_external_url(self, url: str) -> tuple[bool, str | None]:
-        """Check status of external HTTP/HTTPS URL with caching."""
+    def check_external_url(self, url: str) -> tuple[bool, str | None, bool]:
+        """Check status of external HTTP/HTTPS URL with caching.
+
+        Returns (success, error_message, is_timeout).
+        """
         if not url.startswith(("http://", "https://")):
-            return True, None
+            return True, None, False
 
         if url in self._url_cache:
             return self._url_cache[url]
 
         req = urllib.request.Request(
             url,
-            headers={"User-Agent": "DeadLinkFinder/0.2.0 (Documentation Linter)"},
+            headers={"User-Agent": "DeadLinkFinder/0.2.1 (Markdown Integrity Checker)"},
         )
         try:
             with urllib.request.urlopen(req, timeout=self.http_timeout) as resp:
                 status = getattr(resp, "status", 200)
                 if status >= 400:
-                    res = (False, f"HTTP Error {status}")
+                    res = (False, f"HTTP Error {status}", False)
                 else:
-                    res = (True, None)
+                    res = (True, None, False)
         except urllib.error.HTTPError as exc:
-            res = (False, f"HTTP Error {exc.code}: {exc.reason}")
-        except urllib.error.URLError as exc:
-            res = (False, f"Network Error: {exc.reason}")
+            res = (False, f"HTTP Error {exc.code}: {exc.reason}", False)
+        except (TimeoutError, urllib.error.URLError) as exc:
+            err_str = str(exc)
+            is_timeout = "timed out" in err_str.lower() or isinstance(exc, TimeoutError)
+            res = (False, f"Connection Timeout ({self.http_timeout}s)" if is_timeout else f"Network Error: {exc}", is_timeout)
         except Exception as exc:
-            res = (False, f"Error: {exc}")
+            res = (False, f"Error: {exc}", False)
 
         self._url_cache[url] = res
         return res
 
     def verify_reference(self, ref: LinkReference, check_external: bool = False) -> BrokenLink | None:
+        # Check invalid empty targets e.g. []() or empty path without anchor
+        if not ref.raw_target.strip():
+            fp = compute_fingerprint("DLF-005", ref.source_file, ref.line_number, ref.raw_target)
+            return BrokenLink(
+                reference=ref,
+                rule_id="DLF-005",
+                rule_name="Invalid Markdown Target",
+                reason="Link target path is empty or malformed",
+                suggestion=None,
+                fingerprint=fp,
+            )
+
         # Handle external HTTP/HTTPS links
         if ref.is_external:
             if not check_external:
                 return None
-            success, err_msg = self.check_external_url(ref.target_path)
+            success, err_msg, is_timeout = self.check_external_url(ref.target_path)
             if not success:
+                rule_id = "DLF-007" if is_timeout else "DLF-003"
+                rule_name = "External URL Timeout" if is_timeout else "Broken External URL"
+                fp = compute_fingerprint(rule_id, ref.source_file, ref.line_number, ref.raw_target)
                 return BrokenLink(
                     reference=ref,
-                    rule_id="DLF-003",
-                    rule_name="Broken External URL",
+                    rule_id=rule_id,
+                    rule_name=rule_name,
                     reason=err_msg or "URL unreachable",
+                    fingerprint=fp,
                 )
             return None
 
@@ -143,35 +173,50 @@ class LinkVerifier:
         if not target_path_raw and ref.anchor:
             headings = self._get_headings_for_file(source_path)
             if ref.anchor not in headings:
+                fp = compute_fingerprint("DLF-002", ref.source_file, ref.line_number, ref.raw_target)
                 return BrokenLink(
                     reference=ref,
                     rule_id="DLF-002",
                     rule_name="Missing Anchor Slug",
                     reason=f"Anchor '#{ref.anchor}' not found in current file",
+                    fingerprint=fp,
                 )
             return None
 
-        # 2. File link (e.g. ./docs/guide.md or ../assets/img.png)
+        # 2. File or Image link (e.g. ./docs/guide.md or ../assets/img.png)
         target_file = (source_dir / target_path_raw).resolve()
         if not target_file.exists():
             suggestion = self.suggest_similar_path(target_path_raw)
+            if ref.is_image:
+                rule_id = "DLF-004"
+                rule_name = "Missing Local Image"
+                reason = f"Referenced local image does not exist on disk: '{ref.target_path}'"
+            else:
+                rule_id = "DLF-001"
+                rule_name = "Broken Local File Link"
+                reason = f"Target file does not exist: '{ref.target_path}'"
+
+            fp = compute_fingerprint(rule_id, ref.source_file, ref.line_number, ref.raw_target)
             return BrokenLink(
                 reference=ref,
-                rule_id="DLF-001",
-                rule_name="Broken Local File Link",
-                reason=f"Target file does not exist: '{ref.target_path}'",
+                rule_id=rule_id,
+                rule_name=rule_name,
+                reason=reason,
                 suggestion=suggestion,
+                fingerprint=fp,
             )
 
         # 3. File link with anchor (e.g. ./docs/guide.md#installation)
         if ref.anchor and target_file.is_file() and target_file.suffix.lower() == ".md":
             headings = self._get_headings_for_file(target_file)
             if ref.anchor not in headings:
+                fp = compute_fingerprint("DLF-002", ref.source_file, ref.line_number, ref.raw_target)
                 return BrokenLink(
                     reference=ref,
                     rule_id="DLF-002",
                     rule_name="Missing Anchor Slug",
                     reason=f"File exists, but anchor '#{ref.anchor}' was not found in '{target_file.name}'",
+                    fingerprint=fp,
                 )
 
         return None
@@ -238,6 +283,7 @@ def format_verification_report(report: VerificationReport, no_color: bool = Fals
             lines.append(f"    Location:   {cyan}{ref.source_file}:{ref.line_number}{reset}")
             lines.append(f"    Target:     '{ref.raw_target}'")
             lines.append(f"    Reason:     {b.reason}")
+            lines.append(f"    Fingerprint:{b.fingerprint[:16]}...")
             if b.suggestion:
                 lines.append(f"    Suggestion: Did you mean '{b.suggestion}'?")
             lines.append("")
@@ -249,7 +295,7 @@ def format_verification_report(report: VerificationReport, no_color: bool = Fals
 def format_verification_json(report: VerificationReport) -> str:
     """Format verification report as structured JSON."""
     data = {
-        "version": "0.2.0",
+        "version": "0.2.1",
         "clean": report.is_clean,
         "total_files_scanned": report.total_files_scanned,
         "total_links_found": report.total_links_found,
@@ -266,6 +312,7 @@ def format_verification_json(report: VerificationReport) -> str:
                 "is_external": b.reference.is_external,
                 "reason": b.reason,
                 "suggestion": b.suggestion,
+                "fingerprint": b.fingerprint,
             }
             for b in report.broken_links
         ],

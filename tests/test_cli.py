@@ -28,6 +28,20 @@ def test_cli_missing_path_exits_two() -> None:
     assert exit_code == 2
 
 
+def test_cli_missing_image_rule_dlf004(tmp_path: Path) -> None:
+    doc = tmp_path / "README.md"
+    doc.write_text("# Title\n![Missing Logo](./assets/logo.png)\n", encoding="utf-8")
+    out_file = tmp_path / "report.json"
+
+    exit_code = main(["--format", "json", "-o", str(out_file), str(doc)])
+    assert exit_code == 1
+
+    data = json.loads(out_file.read_text(encoding="utf-8"))
+    assert data["broken_count"] == 1
+    assert data["broken_links"][0]["rule_id"] == "DLF-004"
+    assert data["broken_links"][0]["is_image"] is True
+
+
 def test_cli_format_json(tmp_path: Path) -> None:
     fixture = Path(__file__).parent / "fixtures" / "broken_doc.md"
     out_file = tmp_path / "report.json"
@@ -55,4 +69,11 @@ def test_cli_format_sarif(tmp_path: Path) -> None:
     sarif = json.loads(out_file.read_text(encoding="utf-8"))
     assert sarif["version"] == "2.1.0"
     assert sarif["runs"][0]["tool"]["driver"]["name"] == "DeadLinkFinder"
-    assert len(sarif["runs"][0]["results"]) == 2
+    results = sarif["runs"][0]["results"]
+    assert len(results) == 2
+
+    # Verify stable partial fingerprints exist on results
+    for res in results:
+        assert "partialFingerprints" in res
+        assert "primaryLocationLineHash" in res["partialFingerprints"]
+        assert len(res["partialFingerprints"]["primaryLocationLineHash"]) == 64

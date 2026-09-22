@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "deadlinkfinder"
-version = "0.2.0"
+version = "0.2.1"
 description = "Fast, zero-dependency Markdown link, image, and heading anchor verifier CLI."
 readme = "README.md"
 license = "MIT"

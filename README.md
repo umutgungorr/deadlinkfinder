@@ -4,70 +4,79 @@
 [![SARIF v2.1.0](https://img.shields.io/badge/SARIF-v2.1.0-blue?logo=github)](https://docs.github.com/en/code-security/code-scanning)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://img.shields.io/badge/tests-20%20passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-21%20passed-brightgreen.svg)]()
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-zero%20external-success.svg)]()
 
-> **Fast, zero-dependency Markdown link, image, and heading anchor verifier CLI with native SARIF output.**  
-> Prevent broken links, missing image assets, and dead `#anchor` fragments in your documentation before they hit production.
+> **DeadLinkFinder is a zero-dependency Markdown integrity checker for local links, images, heading anchors, and optional external URLs.**  
+> Prevent broken links, missing image assets, and dead `#anchor` fragments in your documentation before they reach production.
 
 ---
 
-## 💥 The Problem
+## 🌟 Architecture & Capabilities
 
-Documentation is the front door of your project. Yet, as repositories evolve:
-1. **Renamed or Moved Files**: Renaming `docs/setup.md` breaks every incoming link across your repository with silent 404 errors.
-2. **Broken Heading Anchors**: Updating `## 🚀 Quick Start` breaks links like `[Quick Start](#quick-start)` because the anchor slug changed or was removed.
-3. **Missing Image Assets**: Broken screenshots (`![Architecture](./assets/arch.png)`) leave ugly empty boxes in READMEs.
+### Core Engine (100% Offline, Zero Network)
+- **Zero External Dependencies**: Built strictly using the Python Standard Library (`re`, `pathlib`, `argparse`, `difflib`, `json`, `urllib`). Requires no third-party package installation (`dependencies = []`).
+- **GitHub-style Anchor Engine**: Generates GitHub-compatible heading anchors for common GFM Markdown headings, including punctuation, Unicode text, emojis, and duplicate headings (`#section`, `#section-1`). The anchor behavior is covered by compatibility fixtures for common GitHub Markdown cases.
+- **Local Asset Verification**: Distinguishes between document pages and image assets (`.png`, `.jpg`, `.svg`), reporting missing assets with dedicated rule IDs.
+- **Cross-File Anchor Verification**: Validates complex references like `[API Reference](docs/api.md#authentication)` by inspecting the target file's heading tree.
+- **Code Block Isolation**: Automatically ignores fenced code blocks (` ```...``` `) and inline backtick spans so tutorial examples never trigger false alarms.
+- **Fuzzy "Did You Mean?" Suggestions**: Suggests closest matching file paths when a relative link has a typo or moved location.
+- **Deterministic Exit Codes**: `0` (clean), `1` (broken references found), `2` (CLI error or target not found).
 
-**DeadLinkFinder** recursively audits your Markdown files in milliseconds with **zero external dependencies**.
-
----
-
-## 🌟 Key Features
-
-- **Zero External Dependencies**: Pure Python standard library (`re`, `pathlib`, `argparse`, `difflib`, `json`, `urllib`). Runs anywhere without package installation.
-- **Native SARIF v2.1.0**: Generates standard OASIS SARIF reports directly consumable by GitHub Code Scanning Alerts and CI dashboards.
-- **GitHub-Compatible Anchor Engine**: Perfectly replicates GitHub's GFM heading-to-slug algorithm, handling emojis, accents, punctuation, and duplicate headings (`#section`, `#section-1`).
-- **Cross-File Anchor Verification**: Validates links like `[Docs](docs/api.md#endpoints)` by inspecting the target file's headers.
-- **Smart Code Block Isolation**: Automatically ignores code blocks (` ```...``` `) and inline backticks so sample URLs in tutorials don't trigger false alarms.
-- **Fuzzy "Did You Mean?" Suggestions**: When a local file path is broken due to a typo or move, DeadLinkFinder suggests the closest matching file in your repo.
-- **Deterministic Exit Codes**: `0` (clean), `1` (broken links), `2` (CLI / path error).
+### Optional Network Mode
+- **External URL Validation**: When explicitly enabled via `--check-external`, validates remote `http://` and `https://` links.
+- **Timeout Management**: Configurable network timeout thresholds (`--timeout 5.0`) with isolated timeout error reporting (`DLF-007`).
+- **Offline By Default**: Fast, safe local execution by default without unexpected network calls.
 
 ---
 
 ## 🔍 Validation Rules
 
+Rule IDs are permanent and deterministic for stable CI/CD and SARIF triage:
+
 | Rule ID | Name | Default Level | Description |
-|---------|------|---------------|-------------|
-| `DLF-001` | Broken Local File Link | `error` | Target local file or image asset does not exist on disk |
+|---------|------|:-------------:|-------------|
+| `DLF-001` | Broken Local File Link | `error` | Referenced relative file path does not exist on disk |
 | `DLF-002` | Missing Anchor Slug | `warning` | Target `#heading-anchor` not found in target Markdown document |
-| `DLF-003` | Broken External URL | `warning` | Remote HTTP/HTTPS URL returned $\ge 400$ or timed out |
+| `DLF-003` | Broken External URL | `warning` | Remote HTTP/HTTPS URL returned an error status ($\ge 400$) |
+| `DLF-004` | Missing Local Image | `error` | Referenced graphic or screenshot asset does not exist on disk |
+| `DLF-005` | Invalid Markdown Target | `error` | Target destination is empty or contains malformed syntax |
+| `DLF-006` | Skipped Code Block Reference | `note` | Informational rule indicating ignored code snippet URLs |
+| `DLF-007` | External URL Timeout | `warning` | Remote URL did not respond within configured timeout |
 
 ---
 
 ## 🚀 Quick Start
 
-### 1. Installation
+### Installation
 
-Install via pip:
+Recommended via **pipx** for isolated CLI usage:
+
+```bash
+pipx install deadlinkfinder
+```
+
+Or install via **pip**:
 
 ```bash
 pip install .
 ```
 
-Or run directly without installation:
+Or run directly from source without installation:
 
 ```bash
-python -m deadlinkfinder --help
+git clone https://github.com/umutgungorr/deadlinkfinder.git
+cd deadlinkfinder
+python -m deadlinkfinder .
 ```
 
 ---
 
 ## 🛠️ Usage & Examples
 
-### 1. Scan Current Repository (Offline Local Mode)
+### 1. Scan Local Documentation (Core Offline Mode)
 
-Recursively scan all Markdown files in the current folder:
+Scans local Markdown files quickly with no runtime dependencies. On standard documentation repositories, local scans typically complete in milliseconds:
 
 ```bash
 deadlinkfinder
@@ -75,7 +84,7 @@ deadlinkfinder
 
 ### 2. Export SARIF for GitHub Code Scanning
 
-Generate a standard SARIF v2.1.0 report:
+SARIF findings include stable partial fingerprints (`partialFingerprints.primaryLocationLineHash`) to prevent duplicate Code Scanning alerts across repeated workflow runs:
 
 ```bash
 deadlinkfinder --format sarif -o results.sarif
@@ -87,7 +96,7 @@ deadlinkfinder --format sarif -o results.sarif
 deadlinkfinder --format json -o deadlinks.json
 ```
 
-### 4. Check External URLs (Optional Network Mode)
+### 4. Optional External URL Checking
 
 ```bash
 deadlinkfinder --check-external --timeout 5.0
@@ -95,31 +104,20 @@ deadlinkfinder --check-external --timeout 5.0
 
 ---
 
-## ⚙️ CLI Options & Deterministic Exit Codes
-
-```text
-usage: deadlinkfinder [-h] [--version] [--format {text,json,sarif}]
-                      [-o OUTPUT] [--check-external] [--offline]
-                      [--timeout TIMEOUT] [--no-color] [-q] [-v]
-                      [paths ...]
-```
-
-| Exit Code | Meaning |
-|-----------|---------|
-| `0` | Success: All local links and anchors are valid |
-| `1` | Discrepancy detected: Broken files, missing anchors, or broken URLs |
-| `2` | Error: Target path not found or invalid CLI arguments |
-
----
-
 ## 🤖 CI/CD Integration (GitHub Actions)
 
-Catch broken links automatically on every pull request and publish results to GitHub Code Scanning:
+### Option A: PR-Blocking Mode (Fails build on broken links)
+
+Use this when documentation errors should prevent pull requests from merging:
 
 ```yaml
 name: Documentation Integrity
 
 on: [push, pull_request]
+
+permissions:
+  contents: read
+  security-events: write
 
 jobs:
   deadlinkfinder:
@@ -129,22 +127,68 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Verify Markdown Links (SARIF)
+
+      - name: Verify Documentation Links
         run: |
           python -m deadlinkfinder --format sarif -o results.sarif .
-        continue-on-error: true
+
       - name: Upload SARIF to GitHub Code Scanning
         uses: github/codeql-action/upload-sarif@v3
+        if: always()
         with:
           sarif_file: results.sarif
 ```
 
+### Option B: Advisory / Reporting-Only Mode
+
+Use `continue-on-error: true` if you only want alerts reported in the GitHub Security tab without blocking PR merges:
+
+```yaml
+      - name: Verify Documentation Links (Advisory)
+        run: |
+          python -m deadlinkfinder --format sarif -o results.sarif .
+        continue-on-error: true
+```
+
+> **Note**: Remove `continue-on-error: true` if broken documentation should fail the workflow.
+
 ---
 
-## 🧪 Running Tests
+## 📋 Scope & Known Limitations
 
+### Supported
+- Standard Markdown links: `[Text](path/to/doc.md)`
+- Relative file references across directories: `../guide.md`
+- Relative image links: `![Alt Text](./assets/diagram.png)`
+- Same-file heading anchors: `[Jump](#quick-start)`
+- Cross-file heading anchors: `[Guide](docs/setup.md#installation)`
+- ATX headings with custom punctuation, emojis, and duplicate suffixes (`-1`, `-2`)
+- Fenced code block isolation (` ```...``` ` and ` ~~~...~~~ `)
+- Inline backtick span isolation (` `...` `)
+
+### Known Limitations
+- Complex inline raw HTML tags (`<a href="...">`) receive best-effort regex parsing.
+- Reference-style links (`[text][ref]`) with distant definitions have limited support.
+- JavaScript-rendered client-side Single Page Application (SPA) links are not executed.
+- External URL checks require network access and are skipped by default.
+
+---
+
+## 🧪 Test Coverage
+
+DeadLinkFinder is verified against a comprehensive fixture suite:
+- Unicode and multi-language heading slugs
+- Emoji-prefixed headings (`## 🚀 Quick Start` $\rightarrow$ `#quick-start`)
+- Duplicate heading counters (`#section`, `#section-1`)
+- Missing image asset detection (`DLF-004`)
+- Cross-file anchor resolution
+- Mixed POSIX and Windows backslash paths
+- Empty and malformed Markdown targets (`DLF-005`)
+- SARIF v2.1.0 schema validity and partial fingerprints
+
+Run tests locally:
 ```bash
-uv run --with pytest pytest
+python -m pytest tests contract_tests -v
 ```
 
 ---
