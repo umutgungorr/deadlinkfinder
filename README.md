@@ -10,6 +10,21 @@
 > **DeadLinkFinder is a zero-dependency Markdown integrity checker for local links, images, heading anchors, and optional external URLs.**  
 > Prevent broken links, missing image assets, and dead `#anchor` fragments in your documentation before they reach production.
 
+```text
+$ deadlinkfinder docs/
+
+🔗 DeadLinkFinder v0.2.1 — Verifying documentation integrity...
+[!] DLF-001  ERROR    docs/getting-started.md:28
+    Target not found: '../guides/setup.md'
+    Suggestion: Did you mean '../guides/installation.md'?
+
+[!] DLF-002  WARNING  docs/api-reference.md:104
+    Heading anchor not found: '#authentication-keys'
+
+[✗] 2 issues detected across 14 scanned files (exit 1).
+    Emitted SARIF report to 'deadlinks.sarif' (OASIS v2.1.0 compliant).
+```
+
 ---
 
 ## 🌟 Architecture & Capabilities
