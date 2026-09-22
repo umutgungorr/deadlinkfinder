@@ -1,0 +1,7 @@
+- id: deadlinkfinder
+  name: DeadLinkFinder
+  description: Fast, zero-dependency Markdown link, image, and heading anchor verifier CLI.
+  entry: deadlinkfinder
+  language: python
+  types: [markdown]
+  stages: [pre-commit]

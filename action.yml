@@ -1,0 +1,13 @@
+name: 'DeadLinkFinder Markdown Checker'
+description: 'Fast, zero-dependency Markdown link, image, and heading anchor verifier.'
+author: 'Umut Güngör'
+branding:
+  icon: 'link'
+  color: 'purple'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Run DeadLinkFinder
+      shell: bash
+      run: python -m deadlinkfinder .
