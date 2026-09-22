@@ -1,13 +1,40 @@
 name: 'DeadLinkFinder Markdown Checker'
-description: 'Fast, zero-dependency Markdown link, image, and heading anchor verifier.'
+description: 'Fast, zero-dependency Markdown link, image, and heading anchor verifier with native SARIF output.'
 author: 'Umut Güngör'
 branding:
   icon: 'link'
   color: 'purple'
+
+inputs:
+  format:
+    description: 'Output format (text, json, sarif)'
+    required: false
+    default: 'text'
+  output:
+    description: 'Optional file path to write report'
+    required: false
+    default: ''
+  args:
+    description: 'Additional flags (e.g. --check-external, --timeout 5.0)'
+    required: false
+    default: ''
+  paths:
+    description: 'Files or directories to scan (default: current directory)'
+    required: false
+    default: '.'
 
 runs:
   using: 'composite'
   steps:
     - name: Run DeadLinkFinder
       shell: bash
-      run: python -m deadlinkfinder .
+      run: |
+        CMD="PYTHONPATH=\"${{ github.action_path }}/src\" python -m deadlinkfinder --format ${{ inputs.format }}"
+        if [ -n "${{ inputs.output }}" ]; then
+          CMD="$CMD -o ${{ inputs.output }}"
+        fi
+        if [ -n "${{ inputs.args }}" ]; then
+          CMD="$CMD ${{ inputs.args }}"
+        fi
+        CMD="$CMD ${{ inputs.paths }}"
+        eval $CMD
