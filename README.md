@@ -1,5 +1,7 @@
 # DeadLinkFinder 🔗🔍
 
+[![PyPI version](https://img.shields.io/pypi/v/deadlinkfinder.svg?style=flat-square&logo=pypi&logoColor=white)](https://pypi.org/project/deadlinkfinder/)
+[![PyPI Downloads](https://img.shields.io/pypi/dm/deadlinkfinder.svg?style=flat-square)](https://pypi.org/project/deadlinkfinder/)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
 [![SARIF v2.1.0](https://img.shields.io/badge/SARIF-v2.1.0-blue?logo=github)](https://docs.github.com/en/code-security/code-scanning)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
@@ -78,7 +80,7 @@ pipx install deadlinkfinder
 Or install via **pip**:
 
 ```bash
-pip install .
+pip install deadlinkfinder
 ```
 
 Or run directly from source without installation:
