@@ -10,6 +10,10 @@
 > **DeadLinkFinder is a zero-dependency Markdown integrity checker for local links, images, heading anchors, and optional external URLs.**  
 > Prevent broken links, missing image assets, and dead `#anchor` fragments in your documentation before they reach production.
 
+<p align="center">
+  <img src="assets/demo.png" alt="DeadLinkFinder Demo" width="850">
+</p>
+
 ```text
 $ deadlinkfinder docs/
 
