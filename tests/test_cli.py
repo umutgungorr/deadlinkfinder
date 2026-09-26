@@ -77,3 +77,16 @@ def test_cli_format_sarif(tmp_path: Path) -> None:
         assert "partialFingerprints" in res
         assert "primaryLocationLineHash" in res["partialFingerprints"]
         assert len(res["partialFingerprints"]["primaryLocationLineHash"]) == 64
+
+
+def test_cli_scans_rst_files(tmp_path: Path) -> None:
+    rst_file = tmp_path / "docs.rst"
+    rst_file.write_text("Title\n=====\n\n`Broken Link <./nowhere.rst>`_\n", encoding="utf-8")
+    out_file = tmp_path / "report.json"
+
+    exit_code = main(["--format", "json", "-o", str(out_file), str(tmp_path)])
+    assert exit_code == 1
+
+    data = json.loads(out_file.read_text(encoding="utf-8"))
+    assert data["broken_count"] == 1
+    assert data["broken_links"][0]["rule_id"] == "DLF-001"

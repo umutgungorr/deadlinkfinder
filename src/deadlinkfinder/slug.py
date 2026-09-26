@@ -81,3 +81,59 @@ def extract_headings_from_markdown(content: str) -> set[str]:
             tracker.add_heading(heading_text)
 
     return tracker.anchors
+
+
+def extract_headings_from_rst(content: str) -> set[str]:
+    """Scan reStructuredText content for explicit targets and section titles."""
+    tracker = HeadingTracker()
+    anchors: set[str] = set()
+    lines = content.splitlines()
+    punct_chars = set("=-~^\"'*+#<>_")
+    in_code_block = False
+    code_block_indent = 0
+
+    for i, line in enumerate(lines):
+        trimmed = line.strip()
+
+        # Handle indented code blocks
+        if in_code_block:
+            if not trimmed:
+                continue
+            current_indent = len(line) - len(line.lstrip())
+            if current_indent > code_block_indent:
+                continue
+            in_code_block = False
+
+        if trimmed.startswith((".. code-block::", ".. code::", ".. sourcecode::")) or (
+            trimmed.endswith("::") and not trimmed.startswith("..")
+        ):
+            in_code_block = True
+            code_block_indent = len(line) - len(line.lstrip())
+            continue
+
+        if not trimmed:
+            continue
+
+        # 1. Explicit target: .. _target-name:
+        match_target = re.match(r"^\.\.\s+_([^:]+):\s*$", trimmed)
+        if match_target:
+            target_name = match_target.group(1).strip()
+            anchors.add(target_name)
+            anchors.add(generate_heading_slug(target_name))
+            continue
+
+        # 2. Section title with underline
+        if i + 1 < len(lines):
+            next_line = lines[i + 1].strip()
+            # Underline must be at least as long as text and consist of single punctuation character
+            if (
+                next_line
+                and len(next_line) >= len(trimmed)
+                and len(set(next_line)) == 1
+                and next_line[0] in punct_chars
+                and not (len(set(trimmed)) == 1 and trimmed[0] in punct_chars)
+            ):
+                slug = tracker.add_heading(trimmed)
+                anchors.add(slug)
+
+    return anchors | tracker.anchors
