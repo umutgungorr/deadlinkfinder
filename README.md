@@ -214,6 +214,11 @@ python -m pytest tests contract_tests -v
 
 ---
 
+
+## Project case study
+
+DeadLinkFinder is an open-source project by [Umut Güngör](https://umutgungorr.com/). Read the [DeadLinkFinder case study](https://umutgungorr.com/projects/deadlinkfinder) for its validation approach, supported checks, and limitations.
+
 ## 📄 License
 
 MIT License. See [LICENSE](LICENSE) for details.
