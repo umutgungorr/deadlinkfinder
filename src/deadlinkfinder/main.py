@@ -96,21 +96,25 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def find_markdown_files(paths: Sequence[str]) -> list[Path]:
-    """Find all markdown files under specified file or directory paths."""
+    """Find all markdown and reStructuredText files under specified file or directory paths."""
     found: list[Path] = []
     for p_str in paths:
         p = Path(p_str)
         if not p.exists():
             continue
-        if p.is_file() and p.suffix.lower() in {".md", ".markdown"}:
+        if p.is_file() and p.suffix.lower() in {".md", ".markdown", ".rst"}:
             found.append(p)
         elif p.is_dir():
             for root, dirs, files in os.walk(p):
                 dirs[:] = [d for d in dirs if d not in IGNORED_DIRECTORIES]
                 for file in files:
-                    if file.lower().endswith((".md", ".markdown")):
+                    if file.lower().endswith((".md", ".markdown", ".rst")):
                         found.append(Path(root) / file)
     return sorted(found)
+
+
+# Alias for backward and semantic compatibility
+find_doc_files = find_markdown_files
 
 
 def _output(content: str, output_path: Path | None = None) -> None:
@@ -144,7 +148,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     md_files = find_markdown_files(args.paths)
     if not md_files:
         if not args.quiet and args.format == "text":
-            print("[!] No Markdown files found in the specified path(s).")
+            print("[!] No Markdown or reStructuredText files found in the specified path(s).")
         return 0
 
     use_no_color = args.no_color or ("NO_COLOR" in os.environ)

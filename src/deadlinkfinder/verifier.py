@@ -13,7 +13,7 @@ from pathlib import Path
 from urllib.parse import unquote
 
 from .extractor import LinkReference, extract_links_from_file
-from .slug import extract_headings_from_markdown
+from .slug import extract_headings_from_markdown, extract_headings_from_rst
 
 
 def compute_fingerprint(rule_id: str, source_file: str, line_number: int, target: str) -> str:
@@ -63,7 +63,10 @@ class LinkVerifier:
 
         try:
             content = resolved.read_text(encoding="utf-8", errors="replace")
-            headings = extract_headings_from_markdown(content)
+            if resolved.suffix.lower() == ".rst":
+                headings = extract_headings_from_rst(content)
+            else:
+                headings = extract_headings_from_markdown(content)
             self._heading_cache[resolved] = headings
             return headings
         except OSError:
@@ -126,14 +129,22 @@ class LinkVerifier:
         except (TimeoutError, urllib.error.URLError) as exc:
             err_str = str(exc)
             is_timeout = "timed out" in err_str.lower() or isinstance(exc, TimeoutError)
-            res = (False, f"Connection Timeout ({self.http_timeout}s)" if is_timeout else f"Network Error: {exc}", is_timeout)
-        except Exception as exc:
+            res = (
+                False,
+                f"Connection Timeout ({self.http_timeout}s)"
+                if is_timeout
+                else f"Network Error: {exc}",
+                is_timeout,
+            )
+        except Exception as exc:  # noqa: BLE001
             res = (False, f"Error: {exc}", False)
 
         self._url_cache[url] = res
         return res
 
-    def verify_reference(self, ref: LinkReference, check_external: bool = False) -> BrokenLink | None:
+    def verify_reference(
+        self, ref: LinkReference, check_external: bool = False
+    ) -> BrokenLink | None:
         # Check invalid empty targets e.g. []() or empty path without anchor
         if not ref.raw_target.strip():
             fp = compute_fingerprint("DLF-005", ref.source_file, ref.line_number, ref.raw_target)
@@ -173,7 +184,9 @@ class LinkVerifier:
         if not target_path_raw and ref.anchor:
             headings = self._get_headings_for_file(source_path)
             if ref.anchor not in headings:
-                fp = compute_fingerprint("DLF-002", ref.source_file, ref.line_number, ref.raw_target)
+                fp = compute_fingerprint(
+                    "DLF-002", ref.source_file, ref.line_number, ref.raw_target
+                )
                 return BrokenLink(
                     reference=ref,
                     rule_id="DLF-002",
@@ -185,6 +198,9 @@ class LinkVerifier:
 
         # 2. File or Image link (e.g. ./docs/guide.md or ../assets/img.png)
         target_file = (source_dir / target_path_raw).resolve()
+        if not target_file.exists() and (source_dir / f"{target_path_raw}.rst").exists():
+            target_file = (source_dir / f"{target_path_raw}.rst").resolve()
+
         if not target_file.exists():
             suggestion = self.suggest_similar_path(target_path_raw)
             if ref.is_image:
@@ -206,11 +222,17 @@ class LinkVerifier:
                 fingerprint=fp,
             )
 
-        # 3. File link with anchor (e.g. ./docs/guide.md#installation)
-        if ref.anchor and target_file.is_file() and target_file.suffix.lower() == ".md":
+        # 3. File link with anchor (e.g. ./docs/guide.md#installation or guide.rst#setup)
+        if (
+            ref.anchor
+            and target_file.is_file()
+            and target_file.suffix.lower() in {".md", ".markdown", ".rst"}
+        ):
             headings = self._get_headings_for_file(target_file)
             if ref.anchor not in headings:
-                fp = compute_fingerprint("DLF-002", ref.source_file, ref.line_number, ref.raw_target)
+                fp = compute_fingerprint(
+                    "DLF-002", ref.source_file, ref.line_number, ref.raw_target
+                )
                 return BrokenLink(
                     reference=ref,
                     rule_id="DLF-002",
@@ -274,9 +296,13 @@ def format_verification_report(report: VerificationReport, no_color: bool = Fals
     ]
 
     if report.is_clean:
-        lines.append(f"{green}✓ PERFECT! All local links, images, and heading anchors are intact.{reset}")
+        lines.append(
+            f"{green}✓ PERFECT! All local links, images, and heading anchors are intact.{reset}"
+        )
     else:
-        lines.append(f"{red}{bold}[!] FAILED: Found {len(report.broken_links)} broken link(s):{reset}\n")
+        lines.append(
+            f"{red}{bold}[!] FAILED: Found {len(report.broken_links)} broken link(s):{reset}\n"
+        )
         for b in report.broken_links:
             ref = b.reference
             lines.append(f"  {red}✗ [{b.rule_id}] {b.rule_name}{reset}")

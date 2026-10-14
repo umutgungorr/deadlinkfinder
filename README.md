@@ -6,7 +6,7 @@
 [![SARIF v2.1.0](https://img.shields.io/badge/SARIF-v2.1.0-blue?logo=github)](https://docs.github.com/en/code-security/code-scanning)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://img.shields.io/badge/tests-21%20passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-32%20passed-brightgreen.svg)]()
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-zero%20external-success.svg)]()
 
 > **DeadLinkFinder is a zero-dependency Markdown integrity checker for local links, images, heading anchors, and optional external URLs.**  
@@ -179,13 +179,18 @@ Use `continue-on-error: true` if you only want alerts reported in the GitHub Sec
 
 ### Supported
 - Standard Markdown links: `[Text](path/to/doc.md)`
-- Relative file references across directories: `../guide.md`
+- reStructuredText hyperlinks: `` `Text <path/to/doc.rst>`_ `` and targets (`.. _target: url`)
+- Sphinx / Docutils roles: `:doc:\`...\``, `:ref:\`...\``, `:download:\`...\``
+- reStructuredText images and figures: `.. image:: path` and `.. figure:: path`
+- Relative file references across directories: `../guide.md`, `../guide.rst`
 - Relative image links: `![Alt Text](./assets/diagram.png)`
-- Same-file heading anchors: `[Jump](#quick-start)`
-- Cross-file heading anchors: `[Guide](docs/setup.md#installation)`
+- Same-file heading anchors: `[Jump](#quick-start)`, `` `Jump <#quick-start>`_ ``
+- Cross-file heading anchors: `[Guide](docs/setup.md#installation)`, `` `Guide <docs/setup.rst#installation>`_ ``
 - ATX headings with custom punctuation, emojis, and duplicate suffixes (`-1`, `-2`)
+- reStructuredText section underlines (`=`, `-`, `~`, etc.) and explicit targets (`.. _name:`)
 - Fenced code block isolation (` ```...``` ` and ` ~~~...~~~ `)
-- Inline backtick span isolation (` `...` `)
+- reStructuredText code-block and literal directive isolation (`.. code-block::`, `::`)
+- Inline backtick and literal span isolation (` `...` ` and `` ``...`` ``)
 
 ### Known Limitations
 - Complex inline raw HTML tags (`<a href="...">`) receive best-effort regex parsing.

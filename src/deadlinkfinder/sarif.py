@@ -10,9 +10,11 @@ import json
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from .verifier import BrokenLink, VerificationReport
+    from .verifier import VerificationReport
 
-SARIF_SCHEMA = "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json"
+SARIF_SCHEMA = (
+    "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json"
+)
 TOOL_VERSION = "0.2.1"
 
 RULES = [
@@ -20,7 +22,9 @@ RULES = [
         "id": "DLF-001",
         "name": "Broken Local File Link",
         "shortDescription": {"text": "Target local file does not exist"},
-        "fullDescription": {"text": "A markdown link points to a relative file path that does not exist in the repository."},
+        "fullDescription": {
+            "text": "A markdown link points to a relative file path that does not exist in the repository."
+        },
         "defaultConfiguration": {"level": "error"},
         "help": {
             "text": "Ensure the referenced file exists or update the relative link.",
@@ -32,7 +36,9 @@ RULES = [
         "id": "DLF-002",
         "name": "Missing Anchor Slug",
         "shortDescription": {"text": "Target heading anchor not found"},
-        "fullDescription": {"text": "A markdown link points to an anchor (#section) that does not exist in the target document."},
+        "fullDescription": {
+            "text": "A markdown link points to an anchor (#section) that does not exist in the target document."
+        },
         "defaultConfiguration": {"level": "warning"},
         "help": {
             "text": "Verify the heading text in the target document to ensure the anchor slug matches.",
@@ -44,7 +50,9 @@ RULES = [
         "id": "DLF-003",
         "name": "Broken External URL",
         "shortDescription": {"text": "External URL returned an HTTP error"},
-        "fullDescription": {"text": "An external HTTP/HTTPS link returned an HTTP error status (>= 400)."},
+        "fullDescription": {
+            "text": "An external HTTP/HTTPS link returned an HTTP error status (>= 400)."
+        },
         "defaultConfiguration": {"level": "warning"},
         "help": {
             "text": "Check if the remote page was moved, deleted, or requires authentication.",
@@ -56,7 +64,9 @@ RULES = [
         "id": "DLF-004",
         "name": "Missing Local Image",
         "shortDescription": {"text": "Referenced local image does not exist"},
-        "fullDescription": {"text": "An image reference points to a local graphic file that does not exist on disk."},
+        "fullDescription": {
+            "text": "An image reference points to a local graphic file that does not exist on disk."
+        },
         "defaultConfiguration": {"level": "error"},
         "help": {
             "text": "Verify that the local image file was committed to the repository at the expected path.",
@@ -68,7 +78,9 @@ RULES = [
         "id": "DLF-005",
         "name": "Invalid Markdown Target",
         "shortDescription": {"text": "Link target path is empty or malformed"},
-        "fullDescription": {"text": "The markdown link syntax contains an empty target or invalid destination format."},
+        "fullDescription": {
+            "text": "The markdown link syntax contains an empty target or invalid destination format."
+        },
         "defaultConfiguration": {"level": "error"},
         "help": {
             "text": "Provide a valid relative path, anchor, or external URL for the link target.",
@@ -80,7 +92,9 @@ RULES = [
         "id": "DLF-006",
         "name": "Skipped Code Block Reference",
         "shortDescription": {"text": "Link reference inside code block skipped"},
-        "fullDescription": {"text": "Example links inside fenced code blocks or backtick spans are excluded from validation."},
+        "fullDescription": {
+            "text": "Example links inside fenced code blocks or backtick spans are excluded from validation."
+        },
         "defaultConfiguration": {"level": "note"},
         "help": {
             "text": "Informative rule indicating isolated documentation code snippets.",
@@ -92,7 +106,9 @@ RULES = [
         "id": "DLF-007",
         "name": "External URL Timeout",
         "shortDescription": {"text": "External URL request timed out"},
-        "fullDescription": {"text": "A remote HTTP/HTTPS link did not respond within the configured timeout threshold."},
+        "fullDescription": {
+            "text": "A remote HTTP/HTTPS link did not respond within the configured timeout threshold."
+        },
         "defaultConfiguration": {"level": "warning"},
         "help": {
             "text": "Check network connectivity or adjust the timeout via --timeout.",
