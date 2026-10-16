@@ -1,0 +1,49 @@
+name: Test GitHub Action
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-action:
+    name: Test DeadLinkFinder Action (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Create sample documentation fixture
+        shell: bash
+        run: |
+          mkdir -p sample_docs
+          cat << 'EOF' > sample_docs/guide.md
+          # Setup Guide
+
+          ## Quick Start
+          See the [Quick Start](#quick-start) section or [License](../LICENSE).
+          EOF
+
+      - name: Run DeadLinkFinder Action (text)
+        uses: ./
+        with:
+          format: 'text'
+          paths: 'sample_docs/guide.md'
+
+      - name: Run DeadLinkFinder Action (SARIF output)
+        uses: ./
+        with:
+          format: 'sarif'
+          output: 'sample_docs/results.sarif'
+          paths: 'sample_docs/guide.md'

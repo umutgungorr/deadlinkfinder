@@ -1,15 +1,56 @@
 [build-system]
-requires = ["hatchling==1.27.0"]
+requires = ["hatchling>=1.25.0"]
 build-backend = "hatchling.build"
 
 [project]
 name = "deadlinkfinder"
 version = "0.2.2"
-description = "Fast, zero-dependency Markdown link, image, and heading anchor verifier CLI."
+description = "Fast, zero-dependency Markdown & reStructuredText link, image, and GFM heading anchor verifier CLI with SARIF v2.1.0 output."
 readme = "README.md"
-license = "MIT"
-authors = [{ name = "Umut Güngör" }]
-requires-python = ">=3.12"
+authors = [
+    { name = "Umut Güngör", email = "umutgungor.dev@gmail.com" }
+]
+maintainers = [
+    { name = "Umut Güngör", email = "umutgungor.dev@gmail.com" }
+]
+license = { text = "MIT" }
+requires-python = ">=3.9"
+keywords = [
+    "cli",
+    "markdown",
+    "restructuredtext",
+    "rst",
+    "documentation",
+    "link-checker",
+    "dead-links",
+    "anchors",
+    "sarif",
+    "linter",
+    "devops",
+    "developer-tools"
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Documentation",
+    "Topic :: Software Development :: Documentation",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Utilities"
+]
 dependencies = []
 
 [project.scripts]
@@ -20,6 +61,7 @@ Homepage = "https://umutgungorr.com/projects/deadlinkfinder"
 Documentation = "https://umutgungorr.com/projects/deadlinkfinder"
 Repository = "https://github.com/umutgungorr/deadlinkfinder"
 Issues = "https://github.com/umutgungorr/deadlinkfinder/issues"
+Changelog = "https://github.com/umutgungorr/deadlinkfinder/blob/main/CHANGELOG.md"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/deadlinkfinder"]
@@ -27,8 +69,14 @@ packages = ["src/deadlinkfinder"]
 [tool.pytest.ini_options]
 testpaths = ["contract_tests", "tests"]
 pythonpath = ["src"]
+addopts = "-v --strict-markers"
 
 [tool.ruff]
-target-version = "py312"
+target-version = "py39"
 line-length = 100
-cache-dir = "../../../.ruff_cache"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP"]
+ignore = [
+    "E501",  # Line length handled by formatter
+]

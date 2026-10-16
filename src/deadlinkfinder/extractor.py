@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
 from pathlib import Path
 
+from .compat import slotted_dataclass
 
-@dataclass(slots=True)
+
+@slotted_dataclass
 class LinkReference:
     raw_target: str
     display_text: str

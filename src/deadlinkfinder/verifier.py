@@ -8,10 +8,10 @@ import json
 import urllib.error
 import urllib.request
 from collections.abc import Iterable
-from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import unquote
 
+from .compat import slotted_dataclass
 from .extractor import LinkReference, extract_links_from_file
 from .slug import extract_headings_from_markdown, extract_headings_from_rst
 
@@ -23,7 +23,7 @@ def compute_fingerprint(rule_id: str, source_file: str, line_number: int, target
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
-@dataclass(slots=True)
+@slotted_dataclass
 class BrokenLink:
     reference: LinkReference
     rule_id: str
@@ -33,7 +33,7 @@ class BrokenLink:
     fingerprint: str = ""
 
 
-@dataclass(slots=True)
+@slotted_dataclass
 class VerificationReport:
     total_files_scanned: int
     total_links_found: int
@@ -115,7 +115,7 @@ class LinkVerifier:
 
         req = urllib.request.Request(
             url,
-            headers={"User-Agent": "DeadLinkFinder/0.2.1 (Markdown Integrity Checker)"},
+            headers={"User-Agent": "DeadLinkFinder/0.2.2 (Markdown Integrity Checker)"},
         )
         try:
             with urllib.request.urlopen(req, timeout=self.http_timeout) as resp:
@@ -321,7 +321,7 @@ def format_verification_report(report: VerificationReport, no_color: bool = Fals
 def format_verification_json(report: VerificationReport) -> str:
     """Format verification report as structured JSON."""
     data = {
-        "version": "0.2.1",
+        "version": "0.2.2",
         "clean": report.is_clean,
         "total_files_scanned": report.total_files_scanned,
         "total_links_found": report.total_links_found,
