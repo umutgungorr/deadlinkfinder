@@ -15,6 +15,12 @@ dependencies = []
 [project.scripts]
 deadlinkfinder = "deadlinkfinder.main:main"
 
+[project.urls]
+Homepage = "https://umutgungorr.com/projects/deadlinkfinder"
+Documentation = "https://umutgungorr.com/projects/deadlinkfinder"
+Repository = "https://github.com/umutgungorr/deadlinkfinder"
+Issues = "https://github.com/umutgungorr/deadlinkfinder/issues"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/deadlinkfinder"]
 
