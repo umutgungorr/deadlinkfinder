@@ -23,7 +23,7 @@
 [![CI](https://github.com/umutgungorr/deadlinkfinder/actions/workflows/ci.yml/badge.svg)](https://github.com/umutgungorr/deadlinkfinder/actions)
 [![Action CI](https://github.com/umutgungorr/deadlinkfinder/actions/workflows/test-action.yml/badge.svg)](https://github.com/umutgungorr/deadlinkfinder/actions)
 [![GitHub Marketplace](https://img.shields.io/badge/Marketplace-DeadLinkFinder%20Action-purple?logo=githubactions&logoColor=white)](https://github.com/marketplace/actions/deadlinkfinder-markdown-checker)
-[![Release](https://img.shields.io/badge/release-v0.2.2-blue.svg?logo=git&logoColor=white)](https://github.com/umutgungorr/deadlinkfinder/releases)
+[![Release](https://img.shields.io/badge/release-v0.2.3-blue.svg?logo=git&logoColor=white)](https://github.com/umutgungorr/deadlinkfinder/releases)
 [![PyPI](https://img.shields.io/pypi/v/deadlinkfinder.svg?color=blue&logo=pypi&logoColor=white)](https://pypi.org/project/deadlinkfinder/)
 [![Python Version](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-3776AB.svg?logo=python&logoColor=white)](https://github.com/umutgungorr/deadlinkfinder)
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-0%20external-success.svg)](pyproject.toml)
@@ -207,7 +207,7 @@ Catch broken links, missing images, and dead `#heading-anchors` before `git comm
 ```yaml
 repos:
   - repo: https://github.com/umutgungorr/deadlinkfinder
-    rev: v0.2.2
+    rev: v0.2.3
     hooks:
       - id: deadlinkfinder
 ```
