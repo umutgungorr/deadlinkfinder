@@ -419,7 +419,7 @@ DeadLinkFinder is a core pillar of the zero-dependency **Developer Diagnostics S
 
 ## 📖 Project Case Study
 
-DeadLinkFinder is an open-source project by [Umut Güngör](https://umutgungorr.com/). Read the [DeadLinkFinder case study](https://umutgungorr.com/projects/deadlinkfinder) for its link graph architecture, GFM slug compatibility fixtures, and SARIF fingerprinting design.
+DeadLinkFinder is an open-source project by [Umut Güngör](https://umutgungorr.com/). Read the [DeadLinkFinder case study](https://umutgungorr.com/projects/deadlinkfinder) for its link graph architecture, GFM slug compatibility fixtures, and SARIF fingerprinting design, or follow the CI setup guide: [How to Catch Broken Markdown Links and Dead Anchors in GitHub Actions Before Deploy](https://umutgungorr.com/blog/github-actions-broken-links-deadlinkfinder?lang=en).
 
 ---
 
